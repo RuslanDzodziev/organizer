@@ -9,17 +9,23 @@
   function shim(EXEC, HOME) {
     window.LG65_HOME = HOME; if (!window.LG65_progress) window.LG65_progress = 60;
     function api(fn, args) {
+      var ctl = window.AbortController ? new AbortController() : null;
+      var tm = ctl ? setTimeout(function () { ctl.abort(); }, 45000) : null;
       return fetch(EXEC + '?api=1', {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ fn: fn, args: args })
+        body: JSON.stringify({ fn: fn, args: args }),
+        signal: ctl ? ctl.signal : undefined
       }).then(function (r) {
+        if (tm) clearTimeout(tm);
         if (!r.ok) throw new Error('Сервер недоступен (' + r.status + ')');
         return r.json();
       }).then(function (j) {
         if (!j || !j.ok) throw new Error((j && j.e) || 'Ошибка сервера');
         return j.r;
       }, function (e) {
+        if (tm) clearTimeout(tm);
+        if (e && e.name === 'AbortError') throw new Error('Сервер долго не отвечает. Попробуйте ещё раз.');
         throw e instanceof Error && /Сервер|Ошибка/.test(e.message) ? e : new Error('Нет связи с сервером. Проверьте интернет.');
       });
     }
@@ -91,10 +97,33 @@
     } else {
       url = EXEC + '?api=ui';
     }
-    fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('Сервер ответил ' + r.status);
-      return r.text();
-    }).then(function (html) {
+    var CK = 'lg65_ui_cache';
+    function getText(u, tries) {
+      var ctl = window.AbortController ? new AbortController() : null;
+      var tm = ctl ? setTimeout(function () { ctl.abort(); }, 15000) : null;
+      return fetch(u, { signal: ctl ? ctl.signal : undefined, cache: 'no-store' }).then(function (r) {
+        if (tm) clearTimeout(tm);
+        if (!r.ok) throw new Error('Сервер ответил ' + r.status);
+        return r.text();
+      }).catch(function (e) {
+        if (tm) clearTimeout(tm);
+        if (tries > 1) { setProg(Math.min(prog, 40)); return getText(u, tries - 1); }
+        throw e && e.name === 'AbortError' ? new Error('сервер долго не отвечает') : e;
+      });
+    }
+    var cached = null;
+    if (kind !== 'form') { try { cached = localStorage.getItem(CK); } catch (_) {} }
+    var job;
+    if (cached && cached.length > 1000) {
+      // мгновенный старт из сохранённой копии, свежая версия скачивается в фоне для следующего открытия
+      job = Promise.resolve(cached);
+      setTimeout(function () {
+        getText(url, 2).then(function (fresh) { try { if (fresh && fresh.length > 1000 && fresh !== cached) localStorage.setItem(CK, fresh); } catch (_) {} }).catch(function () {});
+      }, 4000);
+    } else {
+      job = getText(url, 3).then(function (t) { if (kind !== 'form') { try { localStorage.setItem(CK, t); } catch (_) {} } return t; });
+    }
+    job.then(function (html) {
       clearInterval(timer); setProg(60);
       window.LG65_progress = 60;
       var inj = '<script>(' + shim.toString() + ')(' + JSON.stringify(EXEC) + ',' + JSON.stringify(HOME) + ');<\/script>';
