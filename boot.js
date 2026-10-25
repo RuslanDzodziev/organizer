@@ -175,7 +175,12 @@
     }
     var cached = null;
     try { cached = localStorage.getItem('lg65_ui_cache'); } catch (_) {}
-    if (cached && cached.length > 1000) { write(cached); return; }   // мгновенный старт
+    if (cached && cached.length > 1000) {   // мгновенный старт из сохранённой копии
+      // write только после разбора страницы-загрузчика, иначе document.open() не сработает
+      var go = function () { setTimeout(function () { write(cached); }, 0); };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+      return;
+    }
     shim(EXEC, HOME, false);
     animate('Загружаем органайзер');
     window.LG65_api('LG65_ui', []).then(function (t) {
