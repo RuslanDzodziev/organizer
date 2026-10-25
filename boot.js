@@ -7,7 +7,7 @@
 
   /* Замена google.script.run и google.script.url: вызовы идут на сервер через fetch. */
   function shim(EXEC, HOME) {
-    window.LG65_HOME = HOME;
+    window.LG65_HOME = HOME; if (!window.LG65_progress) window.LG65_progress = 60;
     function api(fn, args) {
       return fetch(EXEC + '?api=1', {
         method: 'POST',
@@ -64,8 +64,25 @@
     el.appendChild(p); el.appendChild(b);
   }
 
+  var prog = 0, timer = null, dots = 0;
+  function setProg(p) {
+    prog = p;
+    var f = document.getElementById('lg65Fill'), t = document.getElementById('lg65Pct');
+    if (f) f.style.width = p.toFixed(1) + '%';
+    if (t) t.textContent = Math.floor(p) + '%';
+  }
+  function animate(label) {
+    timer = setInterval(function () {
+      setProg(prog + (55 - prog) * 0.06);
+      dots = (dots + 1) % 4;
+      var el = document.getElementById('lg65Text');
+      if (el) el.textContent = label + '...'.slice(0, dots);
+    }, 120);
+  }
+
   window.LG65_boot = function (kind) {
     shim(EXEC, HOME);
+    animate(kind === 'form' ? 'Открываем форму' : 'Загружаем органайзер');
     var url;
     if (kind === 'form') {
       var q = {};
@@ -78,6 +95,8 @@
       if (!r.ok) throw new Error('Сервер ответил ' + r.status);
       return r.text();
     }).then(function (html) {
+      clearInterval(timer); setProg(60);
+      window.LG65_progress = 60;
       var inj = '<script>(' + shim.toString() + ')(' + JSON.stringify(EXEC) + ',' + JSON.stringify(HOME) + ');<\/script>';
       if (/<head[^>]*>/i.test(html)) html = html.replace(/<head[^>]*>/i, function (m) { return m + inj; });
       else if (/^\s*<!doctype[^>]*>/i.test(html)) html = html.replace(/^\s*<!doctype[^>]*>/i, function (m) { return m + inj; });
@@ -86,6 +105,7 @@
       document.write(html);
       document.close();
     }).catch(function (e) {
+      clearInterval(timer);
       fail('Не удалось загрузить органайзер: ' + (e && e.message || e));
     });
   };

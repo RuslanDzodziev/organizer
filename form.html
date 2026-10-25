@@ -6,14 +6,26 @@
 <title>Документы | Контур Движение</title>
 <style>
 html,body{margin:0;height:100%}
-body{display:flex;align-items:center;justify-content:center;background:#f4f7f5;color:#0a5b3d;font:600 15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-align:center;padding:0 16px;box-sizing:border-box}
-@media (prefers-color-scheme:dark){body{background:#17201b;color:#e6efe9}}
-button{margin-top:12px;padding:10px 18px;border:0;border-radius:12px;background:#0a5b3d;color:#fff;font:inherit;cursor:pointer}
+body{display:flex;align-items:center;justify-content:center;background:#f5f8f5;color:#0a5b3d;font:500 14px/1.4 Rubik,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding:0 16px;box-sizing:border-box}
+.box{width:min(320px,86vw)}
+.title{font-weight:700;font-size:20px;margin-bottom:18px}
+.track{height:8px;border-radius:99px;background:rgba(10,91,61,.12);overflow:hidden}
+.fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#0a5b3d,#16885d,#c9a646);transition:width .25s ease}
+.row{display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:#3d5a4a}
+.row b{color:#0a5b3d;font-variant-numeric:tabular-nums}
+button{margin-top:14px;padding:10px 18px;border:0;border-radius:12px;background:#0a5b3d;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button:active{transform:scale(.96)}
+@media (prefers-color-scheme:dark){body{background:#17201b;color:#e6efe9}.row{color:#a9bdb1}.row b{color:#e6efe9}.track{background:rgba(255,255,255,.1)}}
 </style>
+<script>try{var t=localStorage.getItem('lg62_theme');if(t==='dark')document.documentElement.style.colorScheme='dark';}catch(e){}</script>
 </head>
 <body>
-<div id="lg65">Открываем форму…</div>
-<script src="boot.js?v=1"></script>
+<div class="box" id="lg65" role="status" aria-live="polite">
+<div class="title">Контур Движение</div>
+<div class="track"><div class="fill" id="lg65Fill"></div></div>
+<div class="row"><span id="lg65Text">Открываем форму</span><b id="lg65Pct">0%</b></div>
+</div>
+<script src="boot.js?v=2"></script>
 <script>LG65_boot('form');</script>
 </body>
 </html>
