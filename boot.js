@@ -168,7 +168,23 @@
       animate('Открываем форму');
       var q = {};
       location.search.slice(1).split('&').forEach(function (p) { var i = p.indexOf('='); if (i > 0) q[decodeURIComponent(p.slice(0, i))] = decodeURIComponent(p.slice(i + 1)); });
-      window.LG65_api('LG65_form', [q.page || '', q.t || '', HOME]).then(write).catch(function (e) {
+      /* без интернета: открываем сохранённую копию формы (данные подопечного из прошлого раза не подставляются) */
+      var ck = 'lg65_form_' + (q.page || ''), fcached = null, done = false;
+      try { fcached = localStorage.getItem(ck); } catch (_) {}
+      function offline(html) {
+        var fix = '<script>window.R39_OFFLINE=1;try{Object.defineProperty(window,"POI_PREFILL",{configurable:true,get:function(){return null},set:function(){}})}catch(e){}<\/script>';
+        return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, function (m) { return m + fix; }) : fix + html;
+      }
+      function useCached() { if (done || !fcached) return false; done = true; write(offline(fcached)); return true; }
+      if (navigator.onLine === false && fcached) { var go2 = function () { setTimeout(useCached, 0); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go2); else go2(); return; }
+      var slow = fcached ? setTimeout(function () { if (navigator.onLine === false) useCached(); }, 6000) : null;
+      window.LG65_api('LG65_form', [q.page || '', q.t || '', HOME]).then(function (t) {
+        clearTimeout(slow); if (done) return; done = true;
+        try { if (t && t.length > 1000) localStorage.setItem(ck, t); } catch (_) {}
+        write(t);
+      }).catch(function (e) {
+        clearTimeout(slow);
+        if (useCached()) return;
         fail('Не удалось открыть форму: ' + (e && e.message || e));
       });
       return;
