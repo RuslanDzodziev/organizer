@@ -207,3 +207,23 @@
     });
   };
 })();
+/* ---------- v26.0.5.8: обновления без ручных действий ----------
+   Перед запуском органайзера освобождаем память телефона: сохранённые копии форм документов
+   (lg65_form_*) могли занять весь localStorage мини-приложения Telegram, и новая версия
+   интерфейса не записывалась — телефон оставался на старой. Формы скачаются заново при открытии.
+   Дополнительно проверяем, что для новой версии есть ~1,5 МБ свободного места. */
+(function () {
+  var forms = [];
+  try {
+    var total = 0;
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && /^lg65_form_/.test(k)) { forms.push(k); total += (localStorage.getItem(k) || '').length; }
+    }
+    if (total > 1500000) forms.forEach(function (k) { localStorage.removeItem(k); });
+    localStorage.setItem('lg65_probe', new Array(700001).join('x'));
+    localStorage.removeItem('lg65_probe');
+  } catch (e) {
+    try { localStorage.removeItem('lg65_probe'); forms.forEach(function (k) { localStorage.removeItem(k); }); } catch (_) {}
+  }
+})();
